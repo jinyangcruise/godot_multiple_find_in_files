@@ -229,6 +229,7 @@ private:
 	Button *_replace_all_button = nullptr;
 };
 
+class PopupMenu;
 class TabContainer;
 
 // Contains several panels
@@ -246,6 +247,13 @@ public:
 	FindInFilesPanel *get_curr_panel();
 	FindInFilesPanel *get_panel_for_results(const String &label);
 
+	enum {
+		PANEL_CLOSE,
+		PANEL_CLOSE_OTHERS,
+		PANEL_CLOSE_RIGHT,
+		PANEL_CLOSE_ALL,
+	};
+
 protected:
 	static void _bind_methods();
 
@@ -256,6 +264,12 @@ protected:
 private:
 	void _on_tab_close_pressed(int p_tab);
 	void _update_bar_visibility();
+
+	void _bar_menu_option(int p_option);
+	void _bar_input(const Ref<InputEvent> &p_input);
+
+	bool _update_bar = true;
+	PopupMenu *_tabs_context_menu = nullptr;
 };
 
 #endif // FIND_IN_FILES_H

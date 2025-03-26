@@ -1083,8 +1083,18 @@ const char *FindInFilesTab::SIGNAL_CLOSE_BUTTON_CLICKED = "close_button_clicked"
 
 FindInFilesTab::FindInFilesTab() {
 	set_drag_to_rearrange_enabled(true);
+	get_tab_bar()->set_select_with_rmb(true);
 	get_tab_bar()->set_tab_close_display_policy(TabBar::CLOSE_BUTTON_SHOW_ACTIVE_ONLY);
 	get_tab_bar()->connect("tab_close_pressed", callable_mp(this, &FindInFilesTab::_on_tab_close_pressed));
+	get_tab_bar()->connect(SceneStringName(gui_input), callable_mp(this, &FindInFilesTab::_bar_input));
+
+	_tabs_context_menu = memnew(PopupMenu);
+	add_child(_tabs_context_menu);
+	_tabs_context_menu->add_item(TTR("Close Tab"), PANEL_CLOSE);
+	_tabs_context_menu->add_item(TTR("Close Other Tabs"), PANEL_CLOSE_OTHERS);
+	_tabs_context_menu->add_item(TTR("Close Tabs to the Right"), PANEL_CLOSE_RIGHT);
+	_tabs_context_menu->add_item(TTR("Close All Tabs"), PANEL_CLOSE_ALL);
+	_tabs_context_menu->connect(SceneStringName(id_pressed), callable_mp(this, &FindInFilesTab::_bar_menu_option));
 }
 
 FindInFilesPanel *FindInFilesTab::create_new_panel() {
@@ -1151,14 +1161,9 @@ void FindInFilesTab::_on_find_in_files_modified_files(const PackedStringArray &p
 }
 
 void FindInFilesTab::_on_find_in_files_close_button_clicked(FindInFilesPanel *panel) {
-	for (int i = 0; i < get_tab_count(); i++) {
-		FindInFilesPanel *p = Object::cast_to<FindInFilesPanel>(get_tab_control(i));
-		if (p && p == panel) {
-			remove_child(panel);
-			panel->queue_free();
-			break;
-		}
-	}
+	ERR_FAIL_COND_MSG(panel->get_parent() != this, "This panel is not a child!");
+	remove_child(panel);
+	panel->queue_free();
 	_update_bar_visibility();
 	if (get_tab_count() == 0) {
 		emit_signal(SNAME(SIGNAL_CLOSE_BUTTON_CLICKED));
@@ -1173,6 +1178,10 @@ void FindInFilesTab::_on_tab_close_pressed(int p_tab) {
 }
 
 void FindInFilesTab::_update_bar_visibility() {
+	if (!_update_bar) {
+		return;
+	}
+
 	// If tab count <= 1, behaves like this is not a TabContainer and the bar is hidden.
 	bool bar_visible = get_tab_count() > 1;
 	set_tabs_visible(bar_visible);
@@ -1182,6 +1191,58 @@ void FindInFilesTab::_update_bar_visibility() {
 		FindInFilesPanel *panel = Object::cast_to<FindInFilesPanel>(get_tab_control(i));
 		if (panel) {
 			panel->set_search_labels_visibility(!bar_visible);
+		}
+	}
+}
+
+void FindInFilesTab::_bar_menu_option(int p_option) {
+	int tab_index = get_current_tab();
+	switch (p_option) {
+		case PANEL_CLOSE: {
+			_on_tab_close_pressed(tab_index);
+		} break;
+		case PANEL_CLOSE_OTHERS: {
+			_update_bar = false;
+			FindInFilesPanel *panel = Object::cast_to<FindInFilesPanel>(get_tab_control(tab_index));
+			for (int i = get_tab_count() - 1; i >= 0; i--) {
+				FindInFilesPanel *p = Object::cast_to<FindInFilesPanel>(get_tab_control(i));
+				if (p != panel) {
+					_on_find_in_files_close_button_clicked(p);
+				}
+			}
+			_update_bar = true;
+			_update_bar_visibility();
+		} break;
+		case PANEL_CLOSE_RIGHT: {
+			_update_bar = false;
+			for (int i = get_tab_count() - 1; i > tab_index; i--) {
+				_on_tab_close_pressed(i);
+			}
+			_update_bar = true;
+			_update_bar_visibility();
+		} break;
+		case PANEL_CLOSE_ALL: {
+			_update_bar = false;
+			for (int i = get_tab_count() - 1; i >= 0; i--) {
+				_on_tab_close_pressed(i);
+			}
+			_update_bar = true;
+		} break;
+	}
+}
+
+void FindInFilesTab::_bar_input(const Ref<InputEvent> &p_input) {
+	int tab_id = get_tab_bar()->get_hovered_tab();
+	Ref<InputEventMouseButton> mb = p_input;
+
+	if (tab_id >= 0 && mb.is_valid() && mb->is_pressed()) {
+		if (mb->get_button_index() == MouseButton::MIDDLE) {
+			_on_tab_close_pressed(tab_id);
+		} else if (mb->get_button_index() == MouseButton::RIGHT) {
+			_tabs_context_menu->set_item_disabled(_tabs_context_menu->get_item_index(PANEL_CLOSE_RIGHT), tab_id == get_tab_count() - 1);
+			_tabs_context_menu->set_position(get_tab_bar()->get_screen_position() + mb->get_position());
+			_tabs_context_menu->reset_size();
+			_tabs_context_menu->popup();
 		}
 	}
 }
