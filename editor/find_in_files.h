@@ -32,8 +32,8 @@
 #define FIND_IN_FILES_H
 
 #include "core/templates/hash_map.h"
-#include "scene/gui/dialogs.h"
 #include "scene/gui/check_button.h"
+#include "scene/gui/dialogs.h"
 #include "scene/gui/tab_container.h"
 
 // Performs the actual search
@@ -259,4 +259,3 @@ private:
 };
 
 #endif // FIND_IN_FILES_H
-

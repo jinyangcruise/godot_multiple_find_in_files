@@ -1174,14 +1174,14 @@ void FindInFilesTab::_on_tab_close_pressed(int p_tab) {
 
 void FindInFilesTab::_update_bar_visibility() {
 	// If tab count <= 1, behaves like this is not a TabContainer and the bar is hidden.
-	bool tabs_visible = get_tab_count() > 1;
-	set_tabs_visible(tabs_visible);
+	bool bar_visible = get_tab_count() > 1;
+	set_tabs_visible(bar_visible);
 
 	// Panel's some labels' texts are duplicate with tab's title, so we want to change their visibility depends on the bar's visibility
 	for (int i = 0; i < get_tab_count(); i++) {
 		FindInFilesPanel *panel = Object::cast_to<FindInFilesPanel>(get_tab_control(i));
 		if (panel) {
-			panel->set_search_labels_visibility(!tabs_visible);
+			panel->set_search_labels_visibility(!bar_visible);
 		}
 	}
 }
